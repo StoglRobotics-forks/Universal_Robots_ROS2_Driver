@@ -65,8 +65,6 @@
 
 namespace ur_robot_driver
 {
-using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
-
 enum class PausingState
 {
   PAUSED,
