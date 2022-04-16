@@ -151,11 +151,11 @@ protected:
   rclcpp::Service<ur_msgs::srv::SetIO>::SharedPtr set_io_srv_;
   rclcpp::Service<ur_msgs::srv::SetPayload>::SharedPtr set_payload_srv_;
 
-  std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::IOStates>> io_pub_;
-  std::shared_ptr<rclcpp::Publisher<ur_msgs::msg::ToolDataMsg>> tool_data_pub_;
-  std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::RobotMode>> robot_mode_pub_;
-  std::shared_ptr<rclcpp::Publisher<ur_dashboard_msgs::msg::SafetyMode>> safety_mode_pub_;
-  std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Bool>> program_state_pub_;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ur_msgs::msg::IOStates>> io_pub_;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ur_msgs::msg::ToolDataMsg>> tool_data_pub_;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ur_dashboard_msgs::msg::RobotMode>> robot_mode_pub_;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<ur_dashboard_msgs::msg::SafetyMode>> safety_mode_pub_;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Bool>> program_state_pub_;
 
   ur_msgs::msg::IOStates io_msg_;
   ur_msgs::msg::ToolDataMsg tool_data_msg_;

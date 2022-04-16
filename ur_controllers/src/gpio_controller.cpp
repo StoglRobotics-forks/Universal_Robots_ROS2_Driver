@@ -277,12 +277,26 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
   } catch (...) {
     return LifecycleNodeInterface::CallbackReturn::ERROR;
   }
+
+  // destogl: fixup for galactic backport - activate publishers
+  io_pub_->on_activate();
+  tool_data_pub_->on_activate();
+  robot_mode_pub_->on_activate();
+  safety_mode_pub_->on_activate();
+  program_state_pub_->on_activate();
+
   return LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn
 ur_controllers::GPIOController::on_deactivate(const rclcpp_lifecycle::State& /*previous_state*/)
 {
+  // destogl: fixup for galactic backport - deactivate publishers
+  io_pub_->on_deactivate();
+  tool_data_pub_->on_deactivate();
+  robot_mode_pub_->on_deactivate();
+  safety_mode_pub_->on_deactivate();
+  program_state_pub_->on_deactivate();
   try {
     // reset publisher
     io_pub_.reset();

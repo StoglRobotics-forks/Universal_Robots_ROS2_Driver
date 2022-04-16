@@ -107,12 +107,18 @@ SpeedScalingStateBroadcaster::on_configure(const rclcpp_lifecycle::State& /*prev
 controller_interface::CallbackReturn
 SpeedScalingStateBroadcaster::on_activate(const rclcpp_lifecycle::State& /*previous_state*/)
 {
+  // destogl: fixup for galactic backport - activate publishers
+  speed_scaling_state_publisher_->on_activate();
+
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn
 SpeedScalingStateBroadcaster::on_deactivate(const rclcpp_lifecycle::State& /*previous_state*/)
 {
+  // destogl: fixup for galactic backport - deactivate publishers
+  speed_scaling_state_publisher_->on_deactivate();
+
   return controller_interface::CallbackReturn::SUCCESS;
 }
 

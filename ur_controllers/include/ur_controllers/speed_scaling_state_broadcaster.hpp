@@ -74,7 +74,7 @@ protected:
   std::vector<std::string> sensor_names_;
   double publish_rate_;
 
-  std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Float64>> speed_scaling_state_publisher_;
+  std::shared_ptr<rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Float64>> speed_scaling_state_publisher_;
   std_msgs::msg::Float64 speed_scaling_state_msg_;
 };
 }  // namespace ur_controllers
