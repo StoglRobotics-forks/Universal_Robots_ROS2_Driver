@@ -178,6 +178,8 @@ protected:
   double scaling_async_success_;
   double resend_robot_program_cmd_;
   double resend_robot_program_async_success_;
+  double hand_back_control_cmd_;
+  double hand_back_control_async_success_;
   bool first_pass_;
   bool initialized_;
   double system_interface_initialized_;
