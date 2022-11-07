@@ -82,6 +82,10 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back("hand_back_control/hand_back_control_cmd");
   config.names.emplace_back("hand_back_control/hand_back_control_async_success");
 
+  // switch_script --> make UR-program return
+  config.names.emplace_back("switch_script/switch_script_cmd");
+  config.names.emplace_back("switch_script/switch_script_async_success");
+
   return config;
 }
 
@@ -280,6 +284,10 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
         "~/hand_back_control",
         std::bind(&GPIOController::handBackControl, this, std::placeholders::_1, std::placeholders::_2));
 
+    switch_script_srv_ = get_node()->create_service<std_srvs::srv::Trigger>(
+        "~/switch_script",
+        std::bind(&GPIOController::switchScript, this, std::placeholders::_1, std::placeholders::_2));
+
     set_payload_srv_ = get_node()->create_service<ur_msgs::srv::SetPayload>(
         "~/set_payload", std::bind(&GPIOController::setPayload, this, std::placeholders::_1, std::placeholders::_2));
   } catch (...) {
@@ -412,6 +420,30 @@ bool GPIOController::handBackControl(std_srvs::srv::Trigger::Request::SharedPtr 
     RCLCPP_INFO(get_node()->get_logger(), "Deactivated control");
   } else {
     RCLCPP_ERROR(get_node()->get_logger(), "Could not deactivate control");
+    return false;
+  }
+
+  return true;
+}
+
+bool GPIOController::switchScript(std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
+                                  std_srvs::srv::Trigger::Response::SharedPtr resp)
+{
+  // reset success flag
+  command_interfaces_[CommandInterfaces::SWITCH_SCRIPT_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+  // call the service in the hardware
+  command_interfaces_[CommandInterfaces::SWITCH_SCRIPT_CMD].set_value(1.0);
+
+  while (command_interfaces_[CommandInterfaces::SWITCH_SCRIPT_ASYNC_SUCCESS].get_value() == ASYNC_WAITING) {
+    // Asynchronous wait until the hardware interface has set the slider value
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+  resp->success = static_cast<bool>(command_interfaces_[CommandInterfaces::SWITCH_SCRIPT_ASYNC_SUCCESS].get_value());
+
+  if (resp->success) {
+    RCLCPP_INFO(get_node()->get_logger(), "Script successfully switched");
+  } else {
+    RCLCPP_ERROR(get_node()->get_logger(), "Could not switch script");
     return false;
   }
 

@@ -250,6 +250,12 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
   command_interfaces.emplace_back(hardware_interface::CommandInterface(
       "hand_back_control", "hand_back_control_async_success", &hand_back_control_async_success_));
 
+  command_interfaces.emplace_back(
+      hardware_interface::CommandInterface("switch_script", "switch_script_cmd", &script_switch_cmd_));
+
+  command_interfaces.emplace_back(hardware_interface::CommandInterface("switch_script", "switch_script_async_success",
+                                                                       &script_switch_async_success_));
+
   command_interfaces.emplace_back(hardware_interface::CommandInterface("payload", "mass", &payload_mass_));
   command_interfaces.emplace_back(
       hardware_interface::CommandInterface("payload", "cog.x", &payload_center_of_gravity_[0]));
@@ -412,6 +418,20 @@ CallbackReturn URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::
                         "README.md] for details.");
   }
 
+  // read all programs
+  for (size_t k = 0; k < aux_script_filenames_.size(); ++k) {
+    std::string prog = readScriptFile(aux_script_filenames_[k]);
+    std::string full_robot_program = "stop program\n";
+    full_robot_program += "def auxScript_" + std::to_string(k + 1) + "():\n";
+    std::istringstream prog_stream(prog);
+    std::string line;
+    while (std::getline(prog_stream, line)) {
+      full_robot_program += "\t" + line + "\n";
+    }
+    full_robot_program += "end\n";
+    aux_scripts_.push_back(full_robot_program);
+  }
+
   ur_driver_->startRTDECommunication();
 
   async_thread_ = std::make_shared<std::thread>(&URPositionHardwareInterface::asyncThread, this);
@@ -545,6 +565,7 @@ hardware_interface::return_type URPositionHardwareInterface::read()
       target_speed_fraction_cmd_ = NO_NEW_CMD_;
       resend_robot_program_cmd_ = NO_NEW_CMD_;
       hand_back_control_cmd_ = NO_NEW_CMD_;
+      script_switch_cmd_ = NO_NEW_CMD_;
       initialized_ = true;
     }
 
@@ -644,6 +665,18 @@ void URPositionHardwareInterface::checkAsyncIO()
     robot_program_running_ = false;
     hand_back_control_async_success_ = true;
     hand_back_control_cmd_ = NO_NEW_CMD_;
+  }
+
+  if (!std::isnan(script_switch_cmd_) && ur_driver_ != nullptr) {
+    const size_t& s = aux_scripts_.size();
+    try {
+      script_switch_async_success_ = ur_driver_->sendScript(aux_scripts_[script_counter_ % s]);
+    } catch (const urcl::UrException& e) {
+      RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Service Call failed: '%s'", e.what());
+      script_counter_--;
+    }
+    script_counter_ = (script_counter_ + 1) % s ? (script_counter_ + 1) : 0;
+    script_switch_cmd_ = NO_NEW_CMD_;
   }
 
   if (!std::isnan(payload_mass_) && !std::isnan(payload_center_of_gravity_[0]) &&
@@ -816,6 +849,14 @@ hardware_interface::return_type URPositionHardwareInterface::perform_command_mod
   stop_modes_.clear();
 
   return ret_val;
+}
+
+std::string URPositionHardwareInterface::readScriptFile(const std::string& filename)
+{
+  std::ifstream ifs(filename);
+  std::string content((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
+
+  return content;
 }
 }  // namespace ur_robot_driver
 
