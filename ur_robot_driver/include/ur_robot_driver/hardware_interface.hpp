@@ -194,14 +194,16 @@ protected:
   double payload_mass_;
   double payload_async_success_;
 
+  const std::string base_path = "/home/<username>/<path_to_ws>";
+
   // auxiliary scripts
-  const std::vector<std::string> aux_script_filenames_{ "/home/lovro/tmp/bosch/ws/src/Universal_Robots_ROS2_Driver/"
+  const std::vector<std::string> aux_script_filenames_{ base_path + "/src/Universal_Robots_ROS2_Driver/"
                                                         "ur_robot_driver/resources/custom_script_1.urscript",
-                                                        "/home/lovro/tmp/bosch/ws/src/Universal_Robots_ROS2_Driver/"
+                                                        base_path + "/src/Universal_Robots_ROS2_Driver/"
                                                         "ur_robot_driver/resources/custom_script_2.urscript",
-                                                        "/home/lovro/tmp/bosch/ws/src/Universal_Robots_ROS2_Driver/"
+                                                        base_path + "/src/Universal_Robots_ROS2_Driver/"
                                                         "ur_robot_driver/resources/custom_script_3.urscript",
-                                                        "/home/lovro/tmp/bosch/ws/src/Universal_Robots_ROS2_Driver/"
+                                                        base_path + "/src/Universal_Robots_ROS2_Driver/"
                                                         "ur_robot_driver/resources/custom_script_4.urscript" };
   std::vector<std::string> aux_scripts_;
   int script_counter_ = 0;
