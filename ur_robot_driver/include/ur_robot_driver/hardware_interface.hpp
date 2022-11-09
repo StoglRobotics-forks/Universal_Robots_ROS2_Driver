@@ -194,7 +194,8 @@ protected:
   double payload_mass_;
   double payload_async_success_;
 
-  const std::string base_path = "/home/<username>/<path_to_ws>";
+  // const std::string base_path = "/home/<username>/<path_to_ws>";
+  const std::string base_path = "/home/deniss/workspace/bosch_galactic";
 
   // auxiliary scripts
   const std::vector<std::string> aux_script_filenames_{ base_path + "/src/Universal_Robots_ROS2_Driver/"

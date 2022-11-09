@@ -11,17 +11,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
-find_package(angles REQUIRED)
-find_package(controller_interface REQUIRED)
-find_package(joint_trajectory_controller REQUIRED)
-find_package(pluginlib REQUIRED)
-find_package(rclcpp_lifecycle REQUIRED)
-find_package(rcutils REQUIRED)
-find_package(realtime_tools REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
-find_package(ur_dashboard_msgs REQUIRED)
-find_package(ur_msgs REQUIRED)
 
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   angles
@@ -35,7 +24,26 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   std_srvs
   ur_dashboard_msgs
   ur_msgs
+
+  Boost
+  control_msgs
+  Eigen3
+  interactive_markers
+  moveit_core
+  moveit_msgs
+  moveit_ros_planning
+  moveit_ros_planning_interface
+  moveit_servo
+  rclcpp_action
+  rviz_visual_tools
+  tf2_geometry_msgs
+  tf2_geometry_msgs
+  tf2_ros
 )
+
+foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
+  find_package(${Dependency} REQUIRED)
+endforeach()
 
 include_directories(include)
 
@@ -51,6 +59,18 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 ament_target_dependencies(${PROJECT_NAME}
   ${THIS_PACKAGE_INCLUDE_DEPENDS}
 )
+
+add_executable(move_group_test
+    src/move_group_test.cpp)
+target_include_directories(move_group_test
+    PUBLIC include)
+ament_target_dependencies(move_group_test
+    ${THIS_PACKAGE_INCLUDE_DEPENDS} Boost)
+
+install(TARGETS move_group_test
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 
 # prevent pluginlib from using boost
 target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
