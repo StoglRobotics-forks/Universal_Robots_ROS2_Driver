@@ -32,8 +32,7 @@ bool SharedVariablesInterface::writeVariables(const vector6d_t* variables)
 
   if (variables != nullptr) {
     for (auto const& pos : *variables) {
-      //      int32_t val = static_cast<int32_t>(pos * MULT_JOINTSTATE);
-      int32_t val = static_cast<int32_t>(pos * 1.0);
+      int32_t val = static_cast<int32_t>(pos * MULT_JOINTSTATE);
       val = htobe32(val);
       b_pos += append(b_pos, val);
     }

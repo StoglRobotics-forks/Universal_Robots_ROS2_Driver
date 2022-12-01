@@ -1,9 +1,10 @@
 # HEADER_BEGIN
 DATA_SIZE = 6
 global thread_on = 1
-global stop_thread = 0
+global stop_execution = 0
 # global data = [0 -1 -1 -1 -1 -1 -1]
 TRAJECTORY_RESULT_SUCCESS = 199
+MULTIPLICATION_SCALING_FACTOR = 1000000
 
 global Origin_pose=p[74.67, -28.025, 80.86, 307.19501, 74.36, 0]
 global Center_Pose=[1.20034, -1.03225, 1.99627, -0.96298, 1.19471, -0.02914]
@@ -27,13 +28,14 @@ global Pos1= get_actual_tcp_pose ()
 thread comm_thread():
   textmsg("Entering Move Thread")
 
-  while stop_thread == 0:
+  while stop_execution == 0:
     enter_critical
     data = socket_read_binary_integer(DATA_SIZE, "sharing_socket")
     if data[0] > 0:
-      var1 = data[1]
-      stop_thread = data[6]
-      if stop_thread == 1:
+      var1 = data[1]/MULTIPLICATION_SCALING_FACTOR
+      DrillDepthSet = var1
+      stop_execution = data[6]/MULTIPLICATION_SCALING_FACTOR
+      if stop_execution == 1:
         Loop_active=False
       end
     end

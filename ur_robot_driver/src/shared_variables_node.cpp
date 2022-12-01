@@ -46,6 +46,7 @@
 
 #include <std_msgs/msg/string.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 class SharedVariablesNode : public rclcpp::Node
 {
@@ -57,7 +58,7 @@ public:
     double var_2;
     double var_3;
     double var_4;
-    double stop_thread;
+    double stop_execution;
   };
 
   SharedVariablesNode(const std::string& node_name) : rclcpp::Node(node_name)
@@ -67,12 +68,15 @@ public:
         this->create_wall_timer(std::chrono::milliseconds(10), std::bind(&SharedVariablesNode::timer_callback, this));
 
     stop_main_loop_service_ = this->create_service<std_srvs::srv::Trigger>(
-        "stop_main_loop", [&](const std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
-                              std_srvs::srv::Trigger::Response::SharedPtr resp) {
-          variables_.stop_thread = 1.0;
+        "~/stop_main_loop", [&](const std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
+                                std_srvs::srv::Trigger::Response::SharedPtr resp) {
+          variables_.stop_execution = 1.0;
           resp->success = true;
           return true;
         });
+
+    var0_sub_ = this->create_subscription<std_msgs::msg::Float64>(
+        "~/var0", 1, [&](const std_msgs::msg::Float64::SharedPtr msg) { variables_.var_0 = msg->data; });
 
     ur_robot_driver::registerUrclLogHandler();
   }
@@ -85,12 +89,10 @@ public:
   {
     std::array<double, 6> vars;
     vars = { variables_.var_0, variables_.var_1, variables_.var_2,
-             variables_.var_3, variables_.var_4, variables_.stop_thread };
+             variables_.var_3, variables_.var_4, variables_.stop_execution };
 
     if (!shared_variables_interface_->writeVariables(&vars)) {
       RCLCPP_INFO(get_logger(), "Could not write variables");
-    } else {
-      RCLCPP_INFO(get_logger(), "'%d'", static_cast<int>(variables_.stop_thread));
     }
   }
 
@@ -100,7 +102,6 @@ public:
     port_ = port;
 
     shared_variables_interface_ = std::make_unique<urcl::control::SharedVariablesInterface>(port);
-
     shared_variables_interface_->setExternalMessageCallback([this] { message_callback(); });
 
     return true;
@@ -108,8 +109,6 @@ public:
 
   void message_callback()
   {
-    //        RCLCPP_INFO(get_logger(), "External message_callback executed");
-
     std_msgs::msg::String msg;
     msg.data = "External message_callback executed";
     publisher_->publish(msg);
@@ -117,10 +116,9 @@ public:
 
 private:
   std::unique_ptr<urcl::control::SharedVariablesInterface> shared_variables_interface_;
-  //      std::unique_ptr<comm::URStream<primary_interface::PrimaryPackage>> tertiary_stream_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
   rclcpp::TimerBase::SharedPtr timer_;
-
+  rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr var0_sub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_main_loop_service_;
 
   SharedVariables variables_{ 0.0, 0.0, 0.0, 0.0, 0.0, 0 };
