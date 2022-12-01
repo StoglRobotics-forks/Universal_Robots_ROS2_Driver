@@ -74,7 +74,7 @@ public:
 
   void setExternalMessageCallback(std::function<void(void)> callback)
   {
-      handle_message_ = callback;
+    handle_message_ = callback;
   }
 
 protected:
