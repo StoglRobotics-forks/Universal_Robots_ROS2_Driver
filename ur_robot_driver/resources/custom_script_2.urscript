@@ -1,12 +1,1 @@
 textmsg("Custom script 2...")
-textmsg("Checking global variables in script 2...")
-
-# HEADER_BEGIN
-
-
-global kita = 1.112
-global i_var_3 = -88.0
-
-# HEADER_END
-
-textmsg(kita)

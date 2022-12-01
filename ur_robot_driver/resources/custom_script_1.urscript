@@ -5,33 +5,98 @@ global stop_thread = 0
 # global data = [0 -1 -1 -1 -1 -1 -1]
 TRAJECTORY_RESULT_SUCCESS = 199
 
-thread custom_thread():
+global Origin_pose=p[74.67, -28.025, 80.86, 307.19501, 74.36, 0]
+global Center_Pose=[1.20034, -1.03225, 1.99627, -0.96298, 1.19471, -0.02914]
+global IntrpModeOn=False
+global delta_xz=0.05
+global ref_sec_pose=p[-0.00002, -0.86824, 0.00005, 1.5707, 0.00047, -0.00012]
+global DrillDepthSet=0.100
+global Origin_pose_rad=p[1.3032, -0.4891, 1.4113, 5.3616, 1.2978, 0]
+global Parking=p[130.87, 0.98, -142.66, -35.96, 49.51, 0]
+global PressForceSet=110
+global DrillTimeSet=7.5
+global ForceDampingSet=0.07
+global Pin_TCP_pose=p[0, 0, 0.212, 0, 0, 0]
+global Nz=0
+global Nx=0
+global Origin_joints=[1.2009, -0.655, 2.02743, -1.37243, 1.19368, -0.02621]
+global Loop_active=True
+
+global Pos1= get_actual_tcp_pose ()
+
+thread comm_thread():
+  textmsg("Entering Move Thread")
+
   while stop_thread == 0:
     enter_critical
     data = socket_read_binary_integer(DATA_SIZE, "sharing_socket")
     if data[0] > 0:
       var1 = data[1]
       stop_thread = data[6]
+      if stop_thread == 1:
+        Loop_active=False
+      end
     end
     socket_send_int(TRAJECTORY_RESULT_SUCCESS, "sharing_socket")
-    sync()
     exit_critical
   end
 end
 
+thread move_thread():
+  Pos1= get_actual_tcp_pose()
+  while (Loop_active):
+    Pos1[1] = Pos1[1] - DrillDepthSet
+    movel(Pos1, a=1.2, v=0.25)
+    Pos1[1] = Pos1[1] + DrillDepthSet
+    movel(Pos1, a=1.2, v=0.25)
+  end
+end
+
+def updown():
+  main_comm_thread = run comm_thread()
+  main_move_thread = run move_thread()
+  join main_move_thread
+  join main_comm_thread
+end
+
+
 # HEADER_END
 
 
-textmsg("Custom script 1...")
-socket_open("192.168.56.1", 30003, "sharing_socket")
+set_tcp(p[0.0,0.0,0.212,0.0,0.0,0.0])
+set_target_payload(0.500000, [0.000000, 0.000000, 0.020000], [0.000485, 0.000485, 0.000485, 0.000000, 0.000000, 0.000000])
+set_safety_mode_transition_hardness(1)
+set_gravity([0.0, -9.82, 6.013015783813504E-16])
+set_tool_communication(False, 115200, 0, 1, 1.5, 3.5)
+set_tool_output_mode(0)
+set_tool_digital_output_mode(0, 1)
+set_tool_digital_output_mode(1, 1)
+set_tool_voltage(0)
+set_standard_analog_input_domain(0, 1)
+set_standard_analog_input_domain(1, 1)
+set_tool_analog_input_domain(0, 1)
+set_tool_analog_input_domain(1, 1)
+set_analog_outputdomain(0, 0)
+set_analog_outputdomain(1, 0)
+set_input_actions_to_default()
 
-while thread_on > 0 and stop_thread == 0:
-  enter_critical
-  thread_custom = run custom_thread()
-  exit_critical
+textmsg("Establishing connection...")
+connection_status = socket_open("192.168.56.1", 30003, "sharing_socket")
+
+if connection_status == True:
+
+  textmsg("Connection established successfully.")
+
+  updown()
+
+  textmsg("Exiting main while loop in the custom script")
+
+else:
+
+  textmsg("Could not establish connection.")
+
 end
 
-join thread_custom
+# join thread_custom
 
-textmsg("Exiting main while loop in the custom script")
 socket_close("sharing_socket")

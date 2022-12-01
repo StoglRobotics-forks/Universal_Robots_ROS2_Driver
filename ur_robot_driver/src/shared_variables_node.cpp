@@ -86,9 +86,11 @@ public:
     std::array<double, 6> vars;
     vars = { variables_.var_0, variables_.var_1, variables_.var_2,
              variables_.var_3, variables_.var_4, variables_.stop_thread };
-    //        if (shared_variables_interface_)
+
     if (!shared_variables_interface_->writeVariables(&vars)) {
       RCLCPP_INFO(get_logger(), "Could not write variables");
+    } else {
+      RCLCPP_INFO(get_logger(), "'%d'", static_cast<int>(variables_.stop_thread));
     }
   }
 

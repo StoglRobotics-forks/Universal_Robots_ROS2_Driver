@@ -432,6 +432,19 @@ CallbackReturn URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::
     aux_scripts_.push_back(full_robot_program);
   }
 
+  // read all secondary programs
+  for (size_t k = 0; k < secondary_programs_filenames_.size(); ++k) {
+    std::string prog = readScriptFile(secondary_programs_filenames_[k]);
+    std::string full_robot_program = "sec secondaryProgram():\n";
+    std::istringstream prog_stream(prog);
+    std::string line;
+    while (std::getline(prog_stream, line)) {
+      full_robot_program += "\t" + line + "\n";
+    }
+    full_robot_program += "end\n";
+    secondary_programs_.push_back(full_robot_program);
+  }
+
   ur_driver_->startRTDECommunication();
 
   async_thread_ = std::make_shared<std::thread>(&URPositionHardwareInterface::asyncThread, this);
@@ -670,12 +683,12 @@ void URPositionHardwareInterface::checkAsyncIO()
   if (!std::isnan(script_switch_cmd_) && ur_driver_ != nullptr) {
     const size_t& s = aux_scripts_.size();
     try {
-      script_switch_async_success_ = ur_driver_->sendScript(aux_scripts_[script_counter_ % s]);
+      script_switch_async_success_ = ur_driver_->sendScript(aux_scripts_[secondary_programs_counter_ % s]);
     } catch (const urcl::UrException& e) {
       RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Service Call failed: '%s'", e.what());
-      script_counter_--;
+      secondary_programs_counter_--;
     }
-    script_counter_ = (script_counter_ + 1) % s ? (script_counter_ + 1) : 0;
+    secondary_programs_counter_ = (secondary_programs_counter_ + 1) % s ? (secondary_programs_counter_ + 1) : 0;
     script_switch_cmd_ = NO_NEW_CMD_;
   }
 

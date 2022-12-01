@@ -59,7 +59,7 @@ void SharedVariablesInterface::connectionCallback(const int filedescriptor)
 
 void SharedVariablesInterface::disconnectionCallback(const int filedescriptor)
 {
-  URCL_LOG_INFO("Connection to trajectory interface dropped.", filedescriptor);
+  URCL_LOG_INFO("Connection to shared variables interface dropped.", filedescriptor);
   client_fd_ = -1;
 }
 
