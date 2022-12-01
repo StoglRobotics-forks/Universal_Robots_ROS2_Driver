@@ -1,1 +1,37 @@
-textmsg("Bosch script 1...")
+# HEADER_BEGIN
+DATA_SIZE = 6
+global thread_on = 1
+global stop_thread = 0
+# global data = [0 -1 -1 -1 -1 -1 -1]
+TRAJECTORY_RESULT_SUCCESS = 199
+
+thread custom_thread():
+  while stop_thread == 0:
+    enter_critical
+    data = socket_read_binary_integer(DATA_SIZE, "sharing_socket")
+    if data[0] > 0:
+      var1 = data[1]
+      stop_thread = data[6]
+    end
+    socket_send_int(TRAJECTORY_RESULT_SUCCESS, "sharing_socket")
+    sync()
+    exit_critical
+  end
+end
+
+# HEADER_END
+
+
+textmsg("Custom script 1...")
+socket_open("192.168.56.1", 30003, "sharing_socket")
+
+while thread_on > 0 and stop_thread == 0:
+  enter_critical
+  thread_custom = run custom_thread()
+  exit_critical
+end
+
+join thread_custom
+
+textmsg("Exiting main while loop in the custom script")
+socket_close("sharing_socket")

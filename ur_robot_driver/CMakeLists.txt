@@ -88,8 +88,17 @@ add_executable(controller_stopper_node
 )
 ament_target_dependencies(controller_stopper_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
+
+add_executable(shared_variables
+        src/shared_variables_interface.cpp
+        src/shared_variables_node.cpp
+        src/urcl_log_handler.cpp
+)
+target_link_libraries(shared_variables ${catkin_LIBRARIES} ur_client_library::urcl)
+ament_target_dependencies(shared_variables ${${PROJECT_NAME}_EXPORTED_TARGETS} ${THIS_PACKAGE_INCLUDE_DEPENDS})
+
 install(
-  TARGETS dashboard_client ur_ros2_control_node controller_stopper_node
+  TARGETS dashboard_client ur_ros2_control_node controller_stopper_node shared_variables
   DESTINATION lib/${PROJECT_NAME}
 )
 

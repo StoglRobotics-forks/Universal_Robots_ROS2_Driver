@@ -1,1 +1,4 @@
-textmsg("Bosch script 3...")
+set_digital_out(1, True)
+textmsg("Custom script 3...")
+global i_var_1
+textmsg(i_var_1)
