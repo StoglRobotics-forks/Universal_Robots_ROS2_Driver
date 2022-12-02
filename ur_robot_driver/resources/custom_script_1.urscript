@@ -1,32 +1,22 @@
 # HEADER_BEGIN
 DATA_SIZE = 6
-global thread_on = 1
 global stop_execution = 0
-# global data = [0 -1 -1 -1 -1 -1 -1]
-TRAJECTORY_RESULT_SUCCESS = 199
+DUMMY_RETURN_VALUE = 199
 MULTIPLICATION_SCALING_FACTOR = 1000000
 
-global Origin_pose=p[74.67, -28.025, 80.86, 307.19501, 74.36, 0]
-global Center_Pose=[1.20034, -1.03225, 1.99627, -0.96298, 1.19471, -0.02914]
-global IntrpModeOn=False
 global delta_xz=0.05
-global ref_sec_pose=p[-0.00002, -0.86824, 0.00005, 1.5707, 0.00047, -0.00012]
-global DrillDepthSet=0.100
-global Origin_pose_rad=p[1.3032, -0.4891, 1.4113, 5.3616, 1.2978, 0]
-global Parking=p[130.87, 0.98, -142.66, -35.96, 49.51, 0]
+global DrillDepthSet={{DRILL_DEPTH_SET_REPLACE}}
 global PressForceSet=110
 global DrillTimeSet=7.5
 global ForceDampingSet=0.07
-global Pin_TCP_pose=p[0, 0, 0.212, 0, 0, 0]
 global Nz=0
 global Nx=0
-global Origin_joints=[1.2009, -0.655, 2.02743, -1.37243, 1.19368, -0.02621]
 global Loop_active=True
 
 global Pos1= get_actual_tcp_pose ()
 
 thread comm_thread():
-  textmsg("Entering Move Thread")
+  textmsg("Entering Comm Thread")
 
   while stop_execution == 0:
     enter_critical
@@ -39,7 +29,7 @@ thread comm_thread():
         Loop_active=False
       end
     end
-    socket_send_int(TRAJECTORY_RESULT_SUCCESS, "sharing_socket")
+    socket_send_int(DUMMY_RETURN_VALUE, "sharing_socket")
     exit_critical
   end
 end
