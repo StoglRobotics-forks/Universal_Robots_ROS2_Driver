@@ -1,11 +1,25 @@
 # HEADER_BEGIN
+COMPUTER_DRIVER_IP = "192.168.56.1"
+SOCKET_NAME = "monitoring_socket"
+SOCKET_CONFIRMATION_RETURN = 199   # if changed the values hast be adjusted in `monitoring_node`
 DATA_SIZE = 6
 global stop_execution = 0
-DUMMY_RETURN_VALUE = 199
 MULTIPLICATION_SCALING_FACTOR = 1000000
 
-global delta_xz=0.05
-global DrillDepthSet={{DRILL_DEPTH_SET_REPLACE}}
+# BEGIN: variable to set before script is sent to the robot
+global DrillPosX=-0.2     # {{DRILL_POS_X_REPLACE}}
+global DrillPosY=-0.55    # {{DRILL_POS_Y_REPLACE}}
+global DrillPosZ=-0.20    # {{DRILL_POS_Z_REPLACE}}
+global DrillDepthSet=0.05 # {{DRILL_DEPTH_REPLACE}}
+
+textmsg("Set variables are:")
+textmsg(" DrillPosX", DrillPosX)
+textmsg(" DrillPosY", DrillPosY)
+textmsg(" DrillPosZ", DrillPosZ)
+textmsg(" DrillDepthSet", DrillDepthSet)
+
+# END: variable to set before script is sent to the robot
+
 global PressForceSet=110
 global DrillTimeSet=7.5
 global ForceDampingSet=0.07
@@ -13,34 +27,39 @@ global Nz=0
 global Nx=0
 global Loop_active=True
 
-global Pos1= get_actual_tcp_pose ()
+global RobotPos=get_actual_tcp_pose ()
 
 thread comm_thread():
   textmsg("Entering Comm Thread")
 
   while stop_execution == 0:
-    enter_critical
-    data = socket_read_binary_integer(DATA_SIZE, "sharing_socket")
+    data = socket_read_binary_integer(DATA_SIZE, "monitoring_socket")
     if data[0] > 0:
-      var1 = data[1]/MULTIPLICATION_SCALING_FACTOR
-      DrillDepthSet = var1
+      enter_critical
+      DrillDepthSet = data[1]/MULTIPLICATION_SCALING_FACTOR
       stop_execution = data[6]/MULTIPLICATION_SCALING_FACTOR
       if stop_execution == 1:
         Loop_active=False
       end
+      exit_critical
     end
-    socket_send_int(DUMMY_RETURN_VALUE, "sharing_socket")
-    exit_critical
+    socket_send_int(SOCKET_CONFIRMATION_RETURN, "monitoring_socket")
+    # textmsg("Received data: ", data[1])
+    # textmsg("Drill set data in comm: ", DrillDepthSet)
   end
 end
 
 thread move_thread():
-  Pos1= get_actual_tcp_pose()
+  RobotPos = get_actual_tcp_pose()
+  RobotPos[0] = DrillPosX
+  RobotPos[1] = DrillPosY
+  RobotPos[2] = DrillPosZ
   while (Loop_active):
-    Pos1[1] = Pos1[1] - DrillDepthSet
-    movel(Pos1, a=1.2, v=0.25)
-    Pos1[1] = Pos1[1] + DrillDepthSet
-    movel(Pos1, a=1.2, v=0.25)
+    RobotPos[2] = RobotPos[2] - DrillDepthSet
+    textmsg("Move Depth set is ", DrillDepthSet)
+    movel(RobotPos, a=1.2, v=0.25)
+    RobotPos[2] = RobotPos[2] + DrillDepthSet
+    movel(RobotPos, a=1.2, v=0.25)
   end
 end
 
@@ -73,7 +92,7 @@ set_analog_outputdomain(1, 0)
 set_input_actions_to_default()
 
 textmsg("Establishing connection...")
-connection_status = socket_open("192.168.56.1", 30003, "sharing_socket")
+connection_status = socket_open(COMPUTER_DRIVER_IP, 30003, "monitoring_socket")
 
 if connection_status == True:
 
@@ -89,6 +108,4 @@ else:
 
 end
 
-# join thread_custom
-
-socket_close("sharing_socket")
+socket_close("monitoring_socket")

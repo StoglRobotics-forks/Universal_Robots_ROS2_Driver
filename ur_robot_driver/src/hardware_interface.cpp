@@ -37,6 +37,7 @@
  */
 //----------------------------------------------------------------------
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -137,6 +138,76 @@ CallbackReturn URPositionHardwareInterface::on_init(const hardware_interface::Ha
 
   return CallbackReturn::SUCCESS;
   ;
+}
+
+CallbackReturn URPositionHardwareInterface::on_configure(const rclcpp_lifecycle::State& previous_state)
+{
+  // Base path to the auxiliary scripts
+  const std::string aux_script_base_path = info_.hardware_parameters["aux_script_base_path"];
+  // Names of the auxiliary scripts
+  const std::string aux_script_filenames = info_.hardware_parameters["aux_script_filenames"];
+  // Argument names in scripts that should be set through interfaces
+  const std::string aux_script_arguments = info_.hardware_parameters["aux_script_arguments"];
+
+  auto split_string = [](const std::string & source, const std::string & delim) {
+    std::vector<std::string> elements;
+    elements.reserve(10); // reserve some space to make adding to the list faster
+    size_t start = 0;
+    size_t found = 0;
+    while ((found = source.find(delim, start)) != std::string::npos) {
+      elements.push_back(source.substr(start, found - start));
+      start = found + delim.size();
+    }
+
+    // If start is exactly source.size(), the last thing in source is a
+    // delimiter, in which case we want to add an empty string to elements.
+    if (start <= source.size()) {
+      elements.push_back(source.substr(start, std::string::npos));
+    }
+    return elements;
+  };
+
+  const auto script_names_in_vector = split_string(aux_script_filenames, ";");
+
+  // Add script full names
+  aux_script_filenames_.reserve(10);
+  size_t max_size = 0;
+  for (const auto filename : script_names_in_vector)
+  {
+    aux_script_filenames_.push_back(aux_script_base_path + filename);
+    RCLCPP_INFO(
+      rclcpp::get_logger("URPositionHardwareInterface"),
+      "Using auxiliary script (%zu) %s", aux_script_filenames_.size(), aux_script_filenames_.back().c_str());
+
+    // TODO(destogl): make read script file a lambda function
+    const std::string prog = readScriptFile(aux_script_filenames_.back());
+    std::string full_robot_program = "stop program\n";
+    full_robot_program += "def auxScript_" + std::to_string(aux_script_filenames_.size()) + "():\n";
+    std::istringstream prog_stream(prog);
+    std::string line;
+    while (std::getline(prog_stream, line)) {
+      full_robot_program += "\t" + line + "\n";
+    }
+    full_robot_program += "end\n";
+    aux_scripts_.push_back(full_robot_program);
+
+    if (max_size < full_robot_program.size())
+    {
+      max_size = full_robot_program.size();
+    }
+  }
+  aux_script_to_send_.reserve(max_size);
+
+  // read all programs
+  for (size_t k = 0; k < aux_script_filenames_.size(); ++k) {
+
+  }
+
+  // prepare variables for auxiliary script arguments
+  aux_script_arguments_ = split_string(aux_script_arguments, ";");
+  aux_script_arguments_values_.resize(aux_script_arguments_.size(), std::numeric_limits<double>::quiet_NaN());
+
+  return CallbackReturn::SUCCESS;
 }
 
 std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::export_state_interfaces()
@@ -251,10 +322,17 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
       "hand_back_control", "hand_back_control_async_success", &hand_back_control_async_success_));
 
   command_interfaces.emplace_back(
-      hardware_interface::CommandInterface("switch_script", "switch_script_cmd", &script_switch_cmd_));
+      hardware_interface::CommandInterface("switch_script", "switch_script_cmd", &aux_script_switch_cmd_));
 
   command_interfaces.emplace_back(hardware_interface::CommandInterface("switch_script", "switch_script_async_success",
-                                                                       &script_switch_async_success_));
+                                                                       &aux_script_switch_async_success_));
+
+  for (size_t i = 0; i < aux_script_arguments_.size(); ++i)
+  {
+    command_interfaces.emplace_back(hardware_interface::CommandInterface("aux_script_arguments", aux_script_arguments_[i], &aux_script_arguments_values_[i]));
+  }
+  command_interfaces.emplace_back(hardware_interface::CommandInterface(
+    "aux_script_arguments", "arguments_written_async_success", &aux_script_arguments_async_success_));
 
   command_interfaces.emplace_back(hardware_interface::CommandInterface("payload", "mass", &payload_mass_));
   command_interfaces.emplace_back(
@@ -418,20 +496,6 @@ CallbackReturn URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::
                         "README.md] for details.");
   }
 
-  // read all programs
-  for (size_t k = 0; k < aux_script_filenames_.size(); ++k) {
-    std::string prog = readScriptFile(aux_script_filenames_[k]);
-    std::string full_robot_program = "stop program\n";
-    full_robot_program += "def auxScript_" + std::to_string(k + 1) + "():\n";
-    std::istringstream prog_stream(prog);
-    std::string line;
-    while (std::getline(prog_stream, line)) {
-      full_robot_program += "\t" + line + "\n";
-    }
-    full_robot_program += "end\n";
-    aux_scripts_.push_back(full_robot_program);
-  }
-
   // read all secondary programs
   for (size_t k = 0; k < secondary_programs_filenames_.size(); ++k) {
     std::string prog = readScriptFile(secondary_programs_filenames_[k]);
@@ -578,7 +642,7 @@ hardware_interface::return_type URPositionHardwareInterface::read()
       target_speed_fraction_cmd_ = NO_NEW_CMD_;
       resend_robot_program_cmd_ = NO_NEW_CMD_;
       hand_back_control_cmd_ = NO_NEW_CMD_;
-      script_switch_cmd_ = NO_NEW_CMD_;
+      aux_script_switch_cmd_ = NO_NEW_CMD_;
       initialized_ = true;
     }
 
@@ -680,16 +744,16 @@ void URPositionHardwareInterface::checkAsyncIO()
     hand_back_control_cmd_ = NO_NEW_CMD_;
   }
 
-  if (!std::isnan(script_switch_cmd_) && ur_driver_ != nullptr) {
+  if (!std::isnan(aux_script_switch_cmd_) && ur_driver_ != nullptr) {
     const size_t& s = aux_scripts_.size();
     try {
-      script_switch_async_success_ = ur_driver_->sendScript(aux_scripts_[secondary_programs_counter_ % s]);
+      aux_script_switch_async_success_ = ur_driver_->sendScript(aux_scripts_[aux_script_counter_ % s]);
     } catch (const urcl::UrException& e) {
       RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Service Call failed: '%s'", e.what());
-      secondary_programs_counter_--;
+      aux_script_counter_--;
     }
-    secondary_programs_counter_ = (secondary_programs_counter_ + 1) % s ? (secondary_programs_counter_ + 1) : 0;
-    script_switch_cmd_ = NO_NEW_CMD_;
+    aux_script_counter_ = (aux_script_counter_ + 1) % s;
+    aux_script_switch_cmd_ = NO_NEW_CMD_;
   }
 
   if (!std::isnan(payload_mass_) && !std::isnan(payload_center_of_gravity_[0]) &&

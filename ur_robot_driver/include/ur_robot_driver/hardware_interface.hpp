@@ -92,9 +92,12 @@ public:
 
   CallbackReturn on_init(const hardware_interface::HardwareInfo& system_info) final;
 
+  CallbackReturn on_configure(const rclcpp_lifecycle::State& previous_state) final;
+
   std::vector<hardware_interface::StateInterface> export_state_interfaces() final;
 
   std::vector<hardware_interface::CommandInterface> export_command_interfaces() final;
+
 
   CallbackReturn on_activate(const rclcpp_lifecycle::State& previous_state) final;
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State& previous_state) final;
@@ -194,29 +197,22 @@ protected:
   double payload_mass_;
   double payload_async_success_;
 
-  const std::string base_path = "/home/<username>/<path_to_ws>";
+  // auxiliary scripts storage
+  std::vector<std::string> aux_script_filenames_;
+  std::vector<std::string> aux_scripts_;
+  std::string aux_script_to_send_;
+  int aux_script_counter_ = 0;
+  std::vector<std::string> aux_script_arguments_;
+  std::vector<double> aux_script_arguments_values_;
+  double aux_script_arguments_async_success_;
+  double aux_script_switch_cmd_;
+  double aux_script_switch_async_success_;
 
-  // auxiliary scripts
-  const std::vector<std::string> aux_script_filenames_{
-    base_path + "/src/Universal_Robots_ROS2_Driver/"
-                "ur_robot_driver/resources/custom_script_1.urscript",
-    //    base_path + "/src/Universal_Robots_ROS2_Driver/"
-    //                "ur_robot_driver/resources/custom_script_2.urscript",
-    //                                                        base_path +
-    //                                                        "/src/Universal_Robots_ROS2_Driver/ur_robot_driver/resources/custom_script_3.urscript",
-    //    base_path + "/src/Universal_Robots_ROS2_Driver/"
-    //                "ur_robot_driver/resources/custom_script_4.urscript"
-  };
-
-  const std::vector<std::string> secondary_programs_filenames_{ base_path + "/src/Universal_Robots_ROS2_Driver/"
+  const std::vector<std::string> secondary_programs_filenames_{ "/home/deniss/workspace/src/Universal_Robots_ROS2_Driver/ur_robot_driver/src/Universal_Robots_ROS2_Driver/"
                                                                             "ur_robot_driver/resources/"
                                                                             "custom_script_3.urscript" };
-  std::vector<std::string> aux_scripts_;
   std::vector<std::string> secondary_programs_;
-  int script_counter_ = 0;
   int secondary_programs_counter_ = 0;
-  double script_switch_cmd_;
-  double script_switch_async_success_;
 
   // copy of non double values
   std::array<double, 18> actual_dig_out_bits_copy_;

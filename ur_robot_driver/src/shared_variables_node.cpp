@@ -1,4 +1,4 @@
-// Copyright ...
+// Copyright (c) 2022, Stogl Robotics Consulting UG (haftungsbeschränkt)
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,7 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the {copyright_holder} nor the names of its
+//    * Neither the name of the copyright holder nor the names of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -76,9 +76,11 @@ public:
         });
 
     var0_sub_ = this->create_subscription<std_msgs::msg::Float64>(
-        "~/var0", 1, [&](const std_msgs::msg::Float64::SharedPtr msg) { variables_.var_0 = msg->data; });
+        "~/var0", 1, [&](const std_msgs::msg::Float64::SharedPtr msg)
+        { variables_.var_0 = msg->data; }
+      );
 
-    ur_robot_driver::registerUrclLogHandler();
+    // ur_robot_driver::registerUrclLogHandler();
   }
   ~SharedVariablesNode()
   {
@@ -92,7 +94,11 @@ public:
              variables_.var_3, variables_.var_4, variables_.stop_execution };
 
     if (!shared_variables_interface_->writeVariables(&vars)) {
-      RCLCPP_INFO(get_logger(), "Could not write variables");
+      RCLCPP_WARN_ONCE(get_logger(), "No Connection: not yet established or stopped.");
+    }
+    else
+    {
+      RCLCPP_INFO_ONCE(get_logger(), "Robot has connected.");
     }
   }
 
