@@ -39,6 +39,7 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <regex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -745,14 +746,25 @@ void URPositionHardwareInterface::checkAsyncIO()
   }
 
   if (!std::isnan(aux_script_switch_cmd_) && ur_driver_ != nullptr) {
-    const size_t& s = aux_scripts_.size();
+    const size_t nr_aux_scripts = aux_scripts_.size();
+
+    // Get current scritp and replace all strings
+    aux_script_to_send_ = aux_scripts_[aux_script_counter_ % nr_aux_scripts];
+
+    for (size_t i = 0; i < aux_script_arguments_.size(); ++i)
+    {
+      const auto full_argument = "<<" + aux_script_arguments_[i] + ">>";
+      aux_script_to_send_ = std::regex_replace(aux_script_to_send_, std::regex(full_argument), std::to_string(aux_script_arguments_values_[i]));
+    }
+    RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Sending script: '%s'", aux_script_to_send_.c_str());
+
     try {
-      aux_script_switch_async_success_ = ur_driver_->sendScript(aux_scripts_[aux_script_counter_ % s]);
+      aux_script_switch_async_success_ = ur_driver_->sendScript(aux_scripts_[aux_script_counter_ % nr_aux_scripts]);
     } catch (const urcl::UrException& e) {
       RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Service Call failed: '%s'", e.what());
       aux_script_counter_--;
     }
-    aux_script_counter_ = (aux_script_counter_ + 1) % s;
+    aux_script_counter_ = (aux_script_counter_ + 1) % nr_aux_scripts;
     aux_script_switch_cmd_ = NO_NEW_CMD_;
   }
 

@@ -7,10 +7,10 @@ global stop_execution = 0
 MULTIPLICATION_SCALING_FACTOR = 1000000
 
 # BEGIN: variable to set before script is sent to the robot
-global DrillPosX=-0.2     # {{DRILL_POS_X_REPLACE}}
-global DrillPosY=-0.55    # {{DRILL_POS_Y_REPLACE}}
-global DrillPosZ=-0.20    # {{DRILL_POS_Z_REPLACE}}
-global DrillDepthSet=0.05 # {{DRILL_DEPTH_REPLACE}}
+global DrillPosX=-0.2     # <<DRILL_POS_X_REPLACE>>
+global DrillPosY=-0.55    # <<DRILL_POS_Y_REPLACE>>
+global DrillPosZ=-0.20    # <<DRILL_POS_Z_REPLACE>>
+global DrillDepthSet=0.05 # <<DRILL_DEPTH_REPLACE>>
 
 textmsg("Set variables are:")
 textmsg(" DrillPosX", DrillPosX)
