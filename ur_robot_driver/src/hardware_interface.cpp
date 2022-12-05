@@ -180,6 +180,7 @@ CallbackReturn URPositionHardwareInterface::on_configure(const rclcpp_lifecycle:
       rclcpp::get_logger("URPositionHardwareInterface"),
       "Using auxiliary script (%zu) %s", aux_script_filenames_.size(), aux_script_filenames_.back().c_str());
 
+    // read all programs
     // TODO(destogl): make read script file a lambda function
     const std::string prog = readScriptFile(aux_script_filenames_.back());
     std::string full_robot_program = "stop program\n";
@@ -198,11 +199,7 @@ CallbackReturn URPositionHardwareInterface::on_configure(const rclcpp_lifecycle:
     }
   }
   aux_script_to_send_.reserve(max_size);
-
-  // read all programs
-  for (size_t k = 0; k < aux_script_filenames_.size(); ++k) {
-
-  }
+  aux_script_to_send_.clear();
 
   // prepare variables for auxiliary script arguments
   aux_script_arguments_ = split_string(aux_script_arguments, ";");
@@ -328,12 +325,14 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
   command_interfaces.emplace_back(hardware_interface::CommandInterface("switch_script", "switch_script_async_success",
                                                                        &aux_script_switch_async_success_));
 
+  command_interfaces.emplace_back(hardware_interface::CommandInterface(
+    "aux_script_arguments", "set_aux_script_arguments_cmd", &set_aux_script_arguments_cmd_));
+  command_interfaces.emplace_back(hardware_interface::CommandInterface(
+    "aux_script_arguments", "set_aux_script_arguments_async_success", &set_aux_script_arguments_async_success_));
   for (size_t i = 0; i < aux_script_arguments_.size(); ++i)
   {
     command_interfaces.emplace_back(hardware_interface::CommandInterface("aux_script_arguments", aux_script_arguments_[i], &aux_script_arguments_values_[i]));
   }
-  command_interfaces.emplace_back(hardware_interface::CommandInterface(
-    "aux_script_arguments", "arguments_written_async_success", &aux_script_arguments_async_success_));
 
   command_interfaces.emplace_back(hardware_interface::CommandInterface("payload", "mass", &payload_mass_));
   command_interfaces.emplace_back(
@@ -644,6 +643,7 @@ hardware_interface::return_type URPositionHardwareInterface::read()
       resend_robot_program_cmd_ = NO_NEW_CMD_;
       hand_back_control_cmd_ = NO_NEW_CMD_;
       aux_script_switch_cmd_ = NO_NEW_CMD_;
+      set_aux_script_arguments_cmd_ = NO_NEW_CMD_;
       initialized_ = true;
     }
 
@@ -746,26 +746,38 @@ void URPositionHardwareInterface::checkAsyncIO()
   }
 
   if (!std::isnan(aux_script_switch_cmd_) && ur_driver_ != nullptr) {
-    const size_t nr_aux_scripts = aux_scripts_.size();
-
-    // Get current scritp and replace all strings
-    aux_script_to_send_ = aux_scripts_[aux_script_counter_ % nr_aux_scripts];
-
-    for (size_t i = 0; i < aux_script_arguments_.size(); ++i)
+    // if no parameters are set then script to send is not yet chosen
+    if (aux_script_to_send_.empty())
     {
-      const auto full_argument = "<<" + aux_script_arguments_[i] + ">>";
-      aux_script_to_send_ = std::regex_replace(aux_script_to_send_, std::regex(full_argument), std::to_string(aux_script_arguments_values_[i]));
+      aux_script_to_send_ = aux_scripts_[aux_script_counter_];
     }
-    RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Sending script: '%s'", aux_script_to_send_.c_str());
 
     try {
-      aux_script_switch_async_success_ = ur_driver_->sendScript(aux_scripts_[aux_script_counter_ % nr_aux_scripts]);
+      aux_script_switch_async_success_ = ur_driver_->sendScript(aux_script_to_send_);
     } catch (const urcl::UrException& e) {
       RCLCPP_ERROR(rclcpp::get_logger("URPositionHardwareInterface"), "Service Call failed: '%s'", e.what());
       aux_script_counter_--;
     }
-    aux_script_counter_ = (aux_script_counter_ + 1) % nr_aux_scripts;
+    aux_script_to_send_.clear();
+    aux_script_counter_ += 1;
+    aux_script_counter_ %= aux_scripts_.size();
+    // aux_script_counter_ = (aux_script_counter_ + 1) % aux_scripts_.size();
     aux_script_switch_cmd_ = NO_NEW_CMD_;
+  }
+
+  if (!std::isnan(set_aux_script_arguments_cmd_) && ur_driver_ != nullptr) {
+    // replace all placeholder in the script to send
+    aux_script_to_send_ = aux_scripts_[aux_script_counter_];
+    for (size_t i = 0; i < aux_script_arguments_.size(); ++i)
+    {
+      const auto full_argument = "<<" + aux_script_arguments_[i] + ">>";
+      aux_script_to_send_ = std::regex_replace(aux_script_to_send_, std::regex(full_argument), std::to_string(aux_script_arguments_values_[i]));
+      // RCLCPP_WARN(rclcpp::get_logger("URPositionHardwareInterface"), "Replacing argument '%s' with value %f", full_argument.c_str(), aux_script_arguments_values_[i]);
+    }
+    RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Script to send is prepared with arguments: '%s'", aux_script_to_send_.c_str());
+
+    set_aux_script_arguments_async_success_ = 1.0;
+    set_aux_script_arguments_cmd_ = NO_NEW_CMD_;
   }
 
   if (!std::isnan(payload_mass_) && !std::isnan(payload_center_of_gravity_[0]) &&

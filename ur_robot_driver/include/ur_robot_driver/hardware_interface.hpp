@@ -204,7 +204,8 @@ protected:
   int aux_script_counter_ = 0;
   std::vector<std::string> aux_script_arguments_;
   std::vector<double> aux_script_arguments_values_;
-  double aux_script_arguments_async_success_;
+  double set_aux_script_arguments_cmd_;
+  double set_aux_script_arguments_async_success_;
   double aux_script_switch_cmd_;
   double aux_script_switch_async_success_;
 

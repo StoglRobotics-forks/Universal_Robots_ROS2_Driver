@@ -27,6 +27,16 @@ controller_manager:
       type: position_controllers/JointGroupPositionController
 
 
+io_and_status_controller:
+  ros__parameters:
+
+    aux_script_arguments:
+      - DRILL_POS_X_REPLACE
+      - DRILL_POS_Y_REPLACE
+      - DRILL_POS_Z_REPLACE
+      - DRILL_DEPTH_REPLACE
+
+
 speed_scaling_state_broadcaster:
   ros__parameters:
     state_publish_rate: 100.0

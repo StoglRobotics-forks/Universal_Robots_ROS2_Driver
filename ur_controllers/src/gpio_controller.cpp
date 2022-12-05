@@ -86,6 +86,14 @@ controller_interface::InterfaceConfiguration GPIOController::command_interface_c
   config.names.emplace_back("switch_script/switch_script_cmd");
   config.names.emplace_back("switch_script/switch_script_async_success");
 
+  // auxiliary script arguments --> make UR-program return
+  config.names.emplace_back("aux_script_arguments/set_aux_script_arguments_cmd");
+  config.names.emplace_back("aux_script_arguments/set_aux_script_arguments_async_success");
+  for (const auto & argument_name : aux_script_arguments_)
+  {
+    config.names.emplace_back("aux_script_arguments/" + argument_name);
+  }
+
   return config;
 }
 
@@ -162,6 +170,10 @@ controller_interface::return_type ur_controllers::GPIOController::update(const r
 rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn
 ur_controllers::GPIOController::on_configure(const rclcpp_lifecycle::State& /*previous_state*/)
 {
+  auto_declare<std::vector<std::string>>("aux_script_arguments", aux_script_arguments_);
+
+  aux_script_arguments_ = get_node()->get_parameter("aux_script_arguments").as_string_array();
+
   return LifecycleNodeInterface::CallbackReturn::SUCCESS;
 }
 
@@ -287,6 +299,10 @@ ur_controllers::GPIOController::on_activate(const rclcpp_lifecycle::State& /*pre
     switch_script_srv_ = get_node()->create_service<std_srvs::srv::Trigger>(
         "~/switch_script",
         std::bind(&GPIOController::switchScript, this, std::placeholders::_1, std::placeholders::_2));
+
+    set_aux_script_arguments_srv_ = get_node()->create_service<ur_msgs::srv::SetAuxiliaryScriptArguments>(
+      "~/set_aux_script_arguments",
+        std::bind(&GPIOController::setAuxiliaryScriptArguments, this, std::placeholders::_1, std::placeholders::_2));
 
     set_payload_srv_ = get_node()->create_service<ur_msgs::srv::SetPayload>(
         "~/set_payload", std::bind(&GPIOController::setPayload, this, std::placeholders::_1, std::placeholders::_2));
@@ -439,6 +455,83 @@ bool GPIOController::switchScript(std_srvs::srv::Trigger::Request::SharedPtr /*r
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
   resp->success = static_cast<bool>(command_interfaces_[CommandInterfaces::SWITCH_SCRIPT_ASYNC_SUCCESS].get_value());
+
+  if (resp->success) {
+    RCLCPP_INFO(get_node()->get_logger(), "Script successfully switched");
+  } else {
+    RCLCPP_ERROR(get_node()->get_logger(), "Could not switch script");
+    return false;
+  }
+
+  return true;
+}
+
+bool GPIOController::setAuxiliaryScriptArguments(
+  ur_msgs::srv::SetAuxiliaryScriptArguments::Request::SharedPtr req,
+  ur_msgs::srv::SetAuxiliaryScriptArguments::Response::SharedPtr resp)
+{
+  // constants for easier use
+  const size_t nr_of_arguments = aux_script_arguments_.size();
+  const size_t start_index = CommandInterfaces::SET_AUX_SCRIPT_ARGUMENTS_ASYNC_SUCCESS + 1;
+
+  // check if `all_arguments` filed is used
+  if (!req->all_arguments.empty() && req->all_arguments.size() != nr_of_arguments)
+  {
+    RCLCPP_ERROR(get_node()->get_logger(), "'all_arguments' is used but its size of %zu is wrong. Expected to be number of auxiliary script arguments which is %zu. Ignoring service call.", req->all_arguments.size(),
+                 nr_of_arguments);
+    resp->success = false;
+    return false;
+  }
+
+  // reset success flag
+  command_interfaces_[CommandInterfaces::SET_AUX_SCRIPT_ARGUMENTS_ASYNC_SUCCESS].set_value(ASYNC_WAITING);
+
+  // Set the values in hardware
+
+  // use array if there are values inside
+  if (!req->all_arguments.empty())
+  {
+    for (size_t i = 0; i < nr_of_arguments; ++i)
+    {
+      command_interfaces_[start_index + i].set_value(req->all_arguments[i]);
+    }
+  }
+  else
+  {
+    auto find_and_send_value_to_command_interface = [&](const std::string & name, const double value)
+    {
+      for (size_t i = 0; i < nr_of_arguments; ++i)
+      {
+        if (command_interfaces_[start_index + i].get_interface_name() == name)
+        {
+          command_interfaces_[start_index + i].set_value(value);
+          return true;
+        }
+      }
+      RCLCPP_ERROR(get_node()->get_logger(), "Could not find interface with name '%s'. Aborting writing arguments for auxiliary script.", name.c_str());
+      return false;
+    };
+
+    if (
+      !find_and_send_value_to_command_interface("DRILL_POS_X_REPLACE", req->drill_pos_x_replace) ||
+      !find_and_send_value_to_command_interface("DRILL_POS_Y_REPLACE", req->drill_pos_y_replace) ||
+      !find_and_send_value_to_command_interface("DRILL_POS_Z_REPLACE", req->drill_pos_z_replace) ||
+      !find_and_send_value_to_command_interface("DRILL_DEPTH_REPLACE", req->drill_depth_replace)
+    )
+    {
+      resp->success = false;
+      return false;
+    }
+  }
+
+  // Trigger setting of values
+  command_interfaces_[CommandInterfaces::SET_AUX_SCRIPT_ARGUMENTS_CMD].set_value(1.0);
+
+  while (command_interfaces_[CommandInterfaces::SET_AUX_SCRIPT_ARGUMENTS_ASYNC_SUCCESS].get_value() == ASYNC_WAITING) {
+    // Asynchronous wait until the hardware interface has set the slider value
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  }
+  resp->success = static_cast<bool>(command_interfaces_[CommandInterfaces::SET_AUX_SCRIPT_ARGUMENTS_ASYNC_SUCCESS].get_value());
 
   if (resp->success) {
     RCLCPP_INFO(get_node()->get_logger(), "Script successfully switched");
