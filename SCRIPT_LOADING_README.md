@@ -1,6 +1,25 @@
-## Before starting
+## Setup workspace
 
 - Make sure that the packages `ros-galactic-ur-msgs` and `sudo apt purge ros-galactic-ur-description` are not installed as binaries.
+
+Checkout following needed repositories:
+```
+repositories:
+  Universal_Robots_ROS2_Description:
+    type: git
+    url: https://github.com/StoglRobotics-forks/Universal_Robots_ROS2_Description.git
+    version: galactic-script-loading
+  moveit2:
+    type: git
+    url: https://github.com/StoglRobotics-forks/moveit2.git
+    version: galactic-remove-project-method
+  ur_msgs:
+    type: git
+    url: https://github.com/StoglRobotics-forks/ur_msgs.git
+    version: aux-scripts-msgs
+```
+
+## Before starting
 
 - Setup [custom_script1.urscript](./ur_robot_driver/resources/custom_script_1.urscript):
 
