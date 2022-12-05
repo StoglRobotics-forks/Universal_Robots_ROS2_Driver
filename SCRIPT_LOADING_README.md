@@ -5,6 +5,10 @@
 Checkout following needed repositories:
 ```
 repositories:
+  Universal_Robots_ROS2_Driver:
+    type: git
+    url: https://github.com/StoglRobotics-forks/Universal_Robots_ROS2_Driver.git
+    version: galactic-script-loading
   Universal_Robots_ROS2_Description:
     type: git
     url: https://github.com/StoglRobotics-forks/Universal_Robots_ROS2_Description.git
