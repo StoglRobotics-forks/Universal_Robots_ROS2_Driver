@@ -53,7 +53,7 @@ class SharedVariablesNode : public rclcpp::Node
 public:
   struct SharedVariables
   {
-    double var_0;
+    double update_values;
     double var_1;
     double var_2;
     double var_3;
@@ -69,7 +69,9 @@ public:
 
     stop_main_loop_service_ = this->create_service<std_srvs::srv::Trigger>(
         "~/stop_main_loop", [&](const std_srvs::srv::Trigger::Request::SharedPtr /*req*/,
-                                std_srvs::srv::Trigger::Response::SharedPtr resp) {
+                                std_srvs::srv::Trigger::Response::SharedPtr resp)
+        {
+          variables_.update_values = 1.0;
           variables_.stop_execution = 1.0;
           resp->success = true;
           return true;
@@ -77,7 +79,10 @@ public:
 
     var0_sub_ = this->create_subscription<std_msgs::msg::Float64>(
         "~/var0", 1, [&](const std_msgs::msg::Float64::SharedPtr msg)
-        { variables_.var_0 = msg->data; }
+        {
+          variables_.update_values = 1;
+          variables_.var_1 = msg->data;
+        }
       );
 
     // ur_robot_driver::registerUrclLogHandler();
@@ -90,15 +95,16 @@ public:
   void timer_callback()
   {
     std::array<double, 6> vars;
-    vars = { variables_.var_0, variables_.var_1, variables_.var_2,
+    vars = { variables_.update_values, variables_.var_1, variables_.var_2,
              variables_.var_3, variables_.var_4, variables_.stop_execution };
+    variables_.update_values = 0;
 
     if (!shared_variables_interface_->writeVariables(&vars)) {
-      RCLCPP_WARN_ONCE(get_logger(), "No Connection: not yet established or stopped.");
+      RCLCPP_WARN_THROTTLE(get_logger(), *(get_clock()), 3000, "No Connection: not yet established or stopped.");
     }
     else
     {
-      RCLCPP_INFO_ONCE(get_logger(), "Robot has connected.");
+      RCLCPP_INFO_THROTTLE(get_logger(), *(get_clock()), 10000, "Robot has connected.");
     }
   }
 
@@ -127,7 +133,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::Float64>::SharedPtr var0_sub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_main_loop_service_;
 
-  SharedVariables variables_{ 0.0, 0.0, 0.0, 0.0, 0.0, 0 };
+  SharedVariables variables_{ 0, 0.0, 0.0, 0.0, 0.0, 0 };
 
 protected:
   std::string robot_ip_;

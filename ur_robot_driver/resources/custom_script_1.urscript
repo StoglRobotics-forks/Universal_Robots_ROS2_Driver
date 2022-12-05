@@ -7,16 +7,16 @@ global stop_execution = 0
 MULTIPLICATION_SCALING_FACTOR = 1000000
 
 # BEGIN: variable to set before script is sent to the robot
-global DrillPosX=-0.2     # <<DRILL_POS_X_REPLACE>>
-global DrillPosY=-0.55    # <<DRILL_POS_Y_REPLACE>>
-global DrillPosZ=-0.20    # <<DRILL_POS_Z_REPLACE>>
-global DrillDepthSet=0.05 # <<DRILL_DEPTH_REPLACE>>
+global DrillPosX=<<DRILL_POS_X_REPLACE>>
+global DrillPosY=<<DRILL_POS_Y_REPLACE>>
+global DrillPosZ=<<DRILL_POS_Z_REPLACE>>
+global DrillDepthSet=<<DRILL_DEPTH_REPLACE>>
 
 textmsg("Set variables are:")
-textmsg(" DrillPosX", DrillPosX)
-textmsg(" DrillPosY", DrillPosY)
-textmsg(" DrillPosZ", DrillPosZ)
-textmsg(" DrillDepthSet", DrillDepthSet)
+textmsg(" DrillPosX: ", DrillPosX)
+textmsg(" DrillPosY: ", DrillPosY)
+textmsg(" DrillPosZ: ", DrillPosZ)
+textmsg(" DrillDepthSet: ", DrillDepthSet)
 
 # END: variable to set before script is sent to the robot
 
@@ -34,9 +34,9 @@ thread comm_thread():
 
   while stop_execution == 0:
     data = socket_read_binary_integer(DATA_SIZE, "monitoring_socket")
-    if data[0] > 0:
+    if data[1] > 0:
       enter_critical
-      DrillDepthSet = data[1]/MULTIPLICATION_SCALING_FACTOR
+      DrillDepthSet = data[2]/MULTIPLICATION_SCALING_FACTOR
       stop_execution = data[6]/MULTIPLICATION_SCALING_FACTOR
       if stop_execution == 1:
         Loop_active=False
@@ -44,8 +44,6 @@ thread comm_thread():
       exit_critical
     end
     socket_send_int(SOCKET_CONFIRMATION_RETURN, "monitoring_socket")
-    # textmsg("Received data: ", data[1])
-    # textmsg("Drill set data in comm: ", DrillDepthSet)
   end
 end
 
@@ -55,10 +53,9 @@ thread move_thread():
   RobotPos[1] = DrillPosY
   RobotPos[2] = DrillPosZ
   while (Loop_active):
-    RobotPos[2] = RobotPos[2] - DrillDepthSet
-    textmsg("Move Depth set is ", DrillDepthSet)
-    movel(RobotPos, a=1.2, v=0.25)
     RobotPos[2] = RobotPos[2] + DrillDepthSet
+    movel(RobotPos, a=1.2, v=0.25)
+    RobotPos[2] = RobotPos[2] - DrillDepthSet
     movel(RobotPos, a=1.2, v=0.25)
   end
 end

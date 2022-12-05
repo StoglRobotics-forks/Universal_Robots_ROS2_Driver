@@ -38,10 +38,10 @@
    - Version 1 - using `all_arguments` filed (useful for development because you don't need to extend messages when adding new arguments)
      ```
      ros2 service call /io_and_status_controller/set_aux_script_arguments ur_msgs/srv/SetAuxiliaryScriptArguments "
-     all_arguments: [0.01, 0.02, 0.03, 0.05]
-     drill_pos_x_replace: -0.0
-     drill_pos_y_replace: -0.0
-     drill_pos_z_replace: -0.0
+     all_arguments: [-0.2, -0.55, -0.20, 0.05]
+     drill_pos_x_replace: 0.0
+     drill_pos_y_replace: 0.0
+     drill_pos_z_replace: 0.0
      drill_depth_replace: 0.0"
      ```
 
