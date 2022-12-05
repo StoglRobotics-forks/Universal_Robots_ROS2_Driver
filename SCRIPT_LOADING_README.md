@@ -28,12 +28,12 @@
 
 6. Setup movement distance using montoring node:
    ```
-   ros2 topic pub /manitoring_node/var0 std_msgs/msg/Float64 "{data: 0.15}"
+   ros2 topic pub /monitoring_node/var0 std_msgs/msg/Float64 "{data: 0.15}"
    ```
 
 7. Stop/Terminate script execution:
    ```
-   ros2 service call /shared_variables_node/stop_main_loop std_srvs/srv/Trigger {}
+   ros2 service call /monitoring_node/stop_main_loop std_srvs/srv/Trigger {}
    ```
 
 8. Switch again `ros2_control` script to use MoveIt2/ros2_control:
