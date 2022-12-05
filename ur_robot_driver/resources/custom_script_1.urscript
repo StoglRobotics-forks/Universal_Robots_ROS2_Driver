@@ -34,7 +34,7 @@ thread comm_thread():
 
   while stop_execution == 0:
     data = socket_read_binary_integer(DATA_SIZE, "monitoring_socket")
-    if data[1] > 0:
+    if data[0] > 0 and data[1] > 0:
       enter_critical
       DrillDepthSet = data[2]/MULTIPLICATION_SCALING_FACTOR
       stop_execution = data[6]/MULTIPLICATION_SCALING_FACTOR
@@ -42,6 +42,12 @@ thread comm_thread():
         Loop_active=False
       end
       exit_critical
+    else:
+      textmsg("Trying to reconnect to socket...")
+      status = socket_open(COMPUTER_DRIVER_IP, 30003, "monitoring_socket")
+      if status == False:
+        textmsg("Reconecting failed...")
+      end
     end
     socket_send_int(SOCKET_CONFIRMATION_RETURN, "monitoring_socket")
   end
