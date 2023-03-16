@@ -1,6 +1,6 @@
 ## Setup workspace
 
-- Make sure that the packages `ros-galactic-ur-msgs` and `sudo apt purge ros-galactic-ur-description` are not installed as binaries.
+- Make sure that the packages `ros-galactic-ur-msgs` and `ros-galactic-ur-description` are not installed as binaries.
 
 Checkout following needed repositories:
 ```
@@ -21,6 +21,12 @@ repositories:
     type: git
     url: https://github.com/StoglRobotics-forks/ur_msgs.git
     version: aux-scripts-msgs
+```
+
+Install all the dependencies
+```
+rosdep update --include-eol-distros
+rosdep install --from-paths src --ignore-src -r -y
 ```
 
 ## Before starting
