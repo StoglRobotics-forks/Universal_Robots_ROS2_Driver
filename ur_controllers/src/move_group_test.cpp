@@ -50,6 +50,7 @@ static const rclcpp::Logger LOGGER = rclcpp::get_logger("move_group_demo");
 
 int main(int argc, char** argv)
 {
+  std::cout << "Starting the node...." << std::endl;
   rclcpp::init(argc, argv);
   rclcpp::NodeOptions node_options;
   node_options.automatically_declare_parameters_from_overrides(true);
@@ -99,6 +100,7 @@ int main(int argc, char** argv)
   std::copy(move_group.getJointModelGroupNames().begin(), move_group.getJointModelGroupNames().end(),
             std::ostream_iterator<std::string>(std::cout, ", "));
 
+
   geometry_msgs::msg::PoseStamped current_pose = move_group.getCurrentPose();
 
   // .. _move_group_interface-planning-to-pose-goal:
@@ -111,44 +113,39 @@ int main(int argc, char** argv)
   target_pose1.position.z += 0.1;
   move_group.setPoseTarget(target_pose1);
 
+
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // Adding a obtject in the planning scene
+  /* Define a box to be attached */
+  shape_msgs::msg::SolidPrimitive primitive;
+  primitive.type = primitive.BOX;
+  primitive.dimensions.resize(3);
+  primitive.dimensions[0] = 1.075;  // x
+  primitive.dimensions[1] = 1.075;  // y
+  primitive.dimensions[2] = 0.005;  // z
+  
+  moveit_msgs::msg::CollisionObject collision_object;
+  
+  // Make the object moving with the robot 
+  collision_object.header.frame_id = "base_link";
+  /* The id of the object */
+  collision_object.id = "Ceiling";
+  collision_object.operation = moveit_msgs::msg::CollisionObject::ADD;
+
+  // Define a pose related to the given frame
+  geometry_msgs::msg::Pose pose;
+  pose.position.z = 1.11;
+  pose.orientation.w = 1.0;
+
+  // Assgin the pose and the shape to the collision object
+  collision_object.primitives.push_back(primitive);
+  collision_object.primitive_poses.push_back(pose);
+
+  // Update the planning scene
+  planning_scene_interface.applyCollisionObject(collision_object);
+
   // Moving to a pose goal
-  // ^^^^^^^^^^^^^^^^^^^^^
-  //
-  // Moving to a pose goal is similar to the step above
-  // except we now use the ``move()`` function. Note that
-  // the pose goal we had set earlier is still active
-  // and so the robot will try to move to that goal. We will
-  // not use that function in this tutorial since it is
-  // a blocking function and requires a controller to be active
-  // and report success on execution of a trajectory.
-
-  /* Uncomment below line when working with a real robot */
   move_group.move();
-
-  // // Planning to a joint-space goal
-  // // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  // //
-  // // Let's set a joint space goal and move towards it.  This will replace the
-  // // pose target we set above.
-  // //
-  // // To start, we'll create an pointer that references the current robot's state.
-  // // RobotState is the object that contains all the current position/velocity/acceleration data.
-  // moveit::core::RobotStatePtr current_state = move_group.getCurrentState(10);
-  // //
-  // // Next get the current set of joint values for the group.
-  // std::vector<double> joint_group_positions;
-  // current_state->copyJointGroupPositions(joint_model_group, joint_group_positions);
-
-  // // Now, let's modify one of the joints, plan to the new joint space goal, and visualize the plan.
-  // joint_group_positions[0] = 0.0;  // radians
-  // joint_group_positions[1] = -1.5707;  // radians
-  // joint_group_positions[2] = 0.0;  // radians
-  // joint_group_positions[3] = -1.5707;  // radians
-  // joint_group_positions[4] = 0.0;  // radians
-  // joint_group_positions[5] = 0.0;  // radians
-  // move_group.setJointValueTarget(joint_group_positions);
-
-  // move_group.move();
 
   rclcpp::shutdown();
   return 0;

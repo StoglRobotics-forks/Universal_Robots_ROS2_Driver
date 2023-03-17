@@ -185,6 +185,25 @@ def launch_setup(context, *args, **kwargs):
         "publish_transforms_updates": True,
     }
 
+    
+    # Start the actual move_group node/action server
+    move_group_node = Node(
+        package="moveit_ros_move_group",
+        executable="move_group",
+        output="screen",
+        parameters=[
+            robot_description,
+            robot_description_semantic,
+            robot_description_kinematics,
+            # robot_description_planning,
+            ompl_planning_pipeline_config,
+            trajectory_execution,
+            moveit_controllers,
+            planning_scene_monitor_parameters,
+            {"use_sim_time": use_sim_time},
+        ],
+    )
+
     # Start the actual move_group node/action server
     move_group_test = Node(
         package="ur_controllers",
@@ -197,7 +216,27 @@ def launch_setup(context, *args, **kwargs):
         ],
     )
 
-    nodes_to_start = [move_group_test]
+    # rviz with moveit configuration
+    rviz_config_file = PathJoinSubstitution(
+        [FindPackageShare(moveit_config_package), "rviz", "view_robot.rviz"]
+    )
+    rviz_node = Node(
+        package="rviz2",
+        condition=IfCondition(launch_rviz),
+        executable="rviz2",
+        name="rviz2_moveit",
+        output="log",
+        arguments=["-d", rviz_config_file],
+        parameters=[
+            robot_description,
+            robot_description_semantic,
+            ompl_planning_pipeline_config,
+            robot_description_kinematics,
+            # robot_description_planning,
+        ],
+    )
+
+    nodes_to_start = [move_group_test, move_group_node, rviz_node]
 
     return nodes_to_start
 
