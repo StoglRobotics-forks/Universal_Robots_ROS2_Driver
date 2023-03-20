@@ -120,8 +120,8 @@ int main(int argc, char** argv)
   shape_msgs::msg::SolidPrimitive primitive;
   primitive.type = primitive.BOX;
   primitive.dimensions.resize(3);
-  primitive.dimensions[0] = 1.075;  // x
-  primitive.dimensions[1] = 1.075;  // y
+  primitive.dimensions[0] = 10.075;  // x
+  primitive.dimensions[1] = 10.075;  // y
   primitive.dimensions[2] = 0.005;  // z
   
   moveit_msgs::msg::CollisionObject collision_object;
