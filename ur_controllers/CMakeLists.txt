@@ -12,6 +12,9 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 
+find_package(yaml-cpp REQUIRED)
+
+
 set(THIS_PACKAGE_INCLUDE_DEPENDS
   angles
   controller_interface
@@ -39,6 +42,7 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   tf2_geometry_msgs
   tf2_geometry_msgs
   tf2_ros
+  yaml-cpp
 )
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
