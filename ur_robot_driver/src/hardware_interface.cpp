@@ -302,9 +302,9 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
 }
 
 hardware_interface::CallbackReturn
-URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous_state)
+URPositionHardwareInterface::on_configure(const rclcpp_lifecycle::State& previous_state)
 {
-  RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Starting ...please wait...");
+  RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Configuring ...please wait...");
 
   // The robot's IP address.
   const std::string robot_ip = info_.hardware_parameters["robot_ip"];
@@ -453,6 +453,15 @@ URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous
   }
 
   async_thread_ = std::make_shared<std::thread>(&URPositionHardwareInterface::asyncThread, this);
+
+  RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Successfully configured!");
+
+  return hardware_interface::CallbackReturn::SUCCESS;
+}
+hardware_interface::CallbackReturn
+URPositionHardwareInterface::on_activate(const rclcpp_lifecycle::State& previous_state)
+{
+  RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "Starting ...please wait...");
 
   RCLCPP_INFO(rclcpp::get_logger("URPositionHardwareInterface"), "System successfully started!");
 

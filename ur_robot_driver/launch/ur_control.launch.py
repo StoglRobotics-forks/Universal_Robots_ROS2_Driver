@@ -52,6 +52,7 @@ def launch_setup(context, *args, **kwargs):
     description_package = LaunchConfiguration("description_package")
     description_file = LaunchConfiguration("description_file")
     tf_prefix = LaunchConfiguration("tf_prefix")
+    activate_ros2_control = LaunchConfiguration("activate_ros2_control")
     use_fake_hardware = LaunchConfiguration("use_fake_hardware")
     fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
     controller_spawner_timeout = LaunchConfiguration("controller_spawner_timeout")
@@ -207,7 +208,7 @@ def launch_setup(context, *args, **kwargs):
         executable="ros2_control_node",
         parameters=[robot_description, update_rate_config_file, initial_joint_controllers],
         output="screen",
-        condition=IfCondition(use_fake_hardware),
+        condition=IfCondition(use_fake_hardware) and IfCondition(activate_ros2_control),
     )
 
     ur_control_node = Node(
@@ -215,7 +216,7 @@ def launch_setup(context, *args, **kwargs):
         executable="ur_ros2_control_node",
         parameters=[robot_description, update_rate_config_file, initial_joint_controllers],
         output="screen",
-        condition=UnlessCondition(use_fake_hardware),
+        condition=UnlessCondition(use_fake_hardware) and IfCondition(activate_ros2_control),
     )
 
     dashboard_client_node = Node(
@@ -286,6 +287,7 @@ def launch_setup(context, *args, **kwargs):
         return Node(
             package="controller_manager",
             executable="spawner",
+            condition=IfCondition(activate_ros2_control),
             arguments=[
                 name,
                 "--controller-manager",
@@ -319,7 +321,7 @@ def launch_setup(context, *args, **kwargs):
             "--controller-manager-timeout",
             controller_spawner_timeout,
         ],
-        condition=IfCondition(activate_joint_controller),
+        condition=IfCondition(activate_joint_controller) and IfCondition(activate_ros2_control)
     )
     initial_joint_controller_spawner_stopped = Node(
         package="controller_manager",
@@ -332,7 +334,7 @@ def launch_setup(context, *args, **kwargs):
             controller_spawner_timeout,
             "--inactive",
         ],
-        condition=UnlessCondition(activate_joint_controller),
+        condition=UnlessCondition(activate_joint_controller) and IfCondition(activate_ros2_control),
     )
 
     nodes_to_start = [
@@ -340,12 +342,12 @@ def launch_setup(context, *args, **kwargs):
         ur_control_node,
         dashboard_client_node,
         tool_communication_node,
-        controller_stopper_node,
+        #controller_stopper_node,
         robot_state_publisher_node,
         rviz_node,
-        initial_joint_controller_spawner_stopped,
-        initial_joint_controller_spawner_started,
-    ] + controller_spawners
+        #initial_joint_controller_spawner_stopped,
+        #initial_joint_controller_spawner_started,
+    ] #+ controller_spawners
 
     return nodes_to_start
 
@@ -424,6 +426,13 @@ def generate_launch_description():
             description="tf_prefix of the joint names, useful for \
         multi-robot setup. If changed, also joint names in the controllers' configuration \
         have to be updated.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "activate_ros2_control",
+            default_value="true",
+            description="Start ros2_control node locally, if false, the node runs externally.",
         )
     )
     declared_arguments.append(
