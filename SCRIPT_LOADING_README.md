@@ -21,6 +21,11 @@ repositories:
     type: git
     url: https://github.com/StoglRobotics-forks/ur_msgs.git
     version: aux-scripts-msgs
+
+  ros2_canopen:
+    type: git
+    url: https://github.com/StoglRobotics-forks/ros2_canopen
+    version: master-galactic-backport
 ```
 
 ## Before starting
