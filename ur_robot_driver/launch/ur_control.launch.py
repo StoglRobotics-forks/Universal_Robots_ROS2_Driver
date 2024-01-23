@@ -85,15 +85,12 @@ def launch_setup(context, *args, **kwargs):
     visual_params = PathJoinSubstitution(
         [FindPackageShare(description_package), "config", ur_type, "visual_parameters.yaml"]
     )
-    script_filename = PathJoinSubstitution(
-        [FindPackageShare("ur_client_library"), "resources", "external_control.urscript"]
-    )
-    input_recipe_filename = PathJoinSubstitution(
-        [FindPackageShare("ur_robot_driver"), "resources", "rtde_input_recipe.txt"]
-    )
-    output_recipe_filename = PathJoinSubstitution(
-        [FindPackageShare("ur_robot_driver"), "resources", "rtde_output_recipe.txt"]
-    )
+    script_filename = "/snap/sr-control-box/current/opt/ros/humble/share/ur_client_library/resources/external_control.urscript"
+
+    input_recipe_filename = "/snap/sr-control-box/current/opt/ros/snap/share/ur_robot_driver/resources/rtde_input_recipe.txt"
+
+    output_recipe_filename = "/snap/sr-control-box/current/opt/ros/snap/share/ur_robot_driver/resources/rtde_output_recipe.txt"
+
 
     robot_description_content = Command(
         [
